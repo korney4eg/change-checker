@@ -3,7 +3,7 @@ package check
 import (
 	"fmt"
 
-	"github.com/korney4eg/notifier/pkg/compare"
+	"github.com/korney4eg/change-checker/pkg/compare"
 )
 
 type Command struct {

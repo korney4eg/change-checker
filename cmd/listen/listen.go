@@ -9,7 +9,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/korney4eg/notifier/pkg/compare"
+	"github.com/korney4eg/change-checker/pkg/compare"
 	"gopkg.in/go-playground/webhooks.v5/github"
 )
 

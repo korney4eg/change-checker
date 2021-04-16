@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	// "github.com/korney4eg/notifier/cmd/check"
-	"github.com/korney4eg/notifier/cmd/listen"
+	// "github.com/korney4eg/change-checker/cmd/check"
+	"github.com/korney4eg/change-checker/cmd/listen"
 	"github.com/umputun/go-flags"
 )
 
