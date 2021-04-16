@@ -13,9 +13,6 @@ type Command struct {
 
 func (c *Command) Execute(_ []string) error {
 	fmt.Println("check")
-	if err != nil {
-		return err
-	}
 	changedItems, err := compare.Run(c.BaseBranch, c.UpstreamBranch, &task)
 	if err != nil {
 		return err
