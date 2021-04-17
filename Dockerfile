@@ -13,4 +13,4 @@ RUN gem install bundler -v "~>1.0" && gem install bundler jekyll
 # RUN apk --no-cache add ca-certificates
 COPY change-checker /change-checker
 RUN chmod +x /change-checker
-CMD ["/change-checker"]
+CMD ["bundle install ; /change-checker"]
