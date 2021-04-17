@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/mmcdole/gofeed"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
@@ -63,11 +64,14 @@ func (config *Config) Filter(action string, branch string) (tasks []Task) {
 
 }
 
-func getFileByCommit(fileName, commit, cmdStr string) (*gofeed.Feed, error) {
+func getFileByCommit(fileName, commit, cmdStr string, debug bool) (*gofeed.Feed, error) {
+	if debug {
+		log.SetLevel(log.DebugLevel)
+	}
 	cmd := exec.Command("/bin/sh", "-c", fmt.Sprintf(cmdStr, commit))
 	stdoutStderr, err := cmd.CombinedOutput()
+	log.Debugf("Output: %s\n", string(stdoutStderr))
 	if err != nil {
-		fmt.Printf("%s\n", stdoutStderr)
 		return nil, err
 	}
 	file, err := os.Open(fileName)
@@ -79,7 +83,11 @@ func getFileByCommit(fileName, commit, cmdStr string) (*gofeed.Feed, error) {
 	feed, err := fp.Parse(file)
 	return feed, err
 }
-func Run(config, action, branch, commitBefore, commitAfter string) error {
+func Run(config, action, branch, commitBefore, commitAfter string, debug bool) error {
+	if debug {
+		log.SetLevel(log.DebugLevel)
+	}
+
 	cfg, err := NewConfig(config)
 	buf := new(bytes.Buffer)
 	generatedTpl := ""
@@ -88,7 +96,7 @@ func Run(config, action, branch, commitBefore, commitAfter string) error {
 		return err
 	}
 	for _, task := range cfg.Filter(action, strings.TrimLeft(branch, "refs/heads/")) {
-		changedItems, err := GetItems(commitBefore, commitAfter, &task)
+		changedItems, err := GetItems(commitBefore, commitAfter, &task, debug)
 		if err != nil {
 			return err
 		}
@@ -106,9 +114,10 @@ func Run(config, action, branch, commitBefore, commitAfter string) error {
 			}
 			generatedTpl = buf.String()
 
+			log.Debugf("Command to run: %s\n", generatedTpl)
 			cmd := exec.Command("/bin/sh", "-c", generatedTpl)
 			stdoutStderr, err := cmd.CombinedOutput()
-			fmt.Printf("%s\n", stdoutStderr)
+			log.Debugf("Output: %s\n", string(stdoutStderr))
 			if err != nil {
 				return err
 			}
@@ -117,12 +126,12 @@ func Run(config, action, branch, commitBefore, commitAfter string) error {
 	}
 	return nil
 }
-func GetItems(commitBefore, commitAfter string, task *Task) (items []*gofeed.Item, err error) {
-	feedBefore, err := getFileByCommit(task.FileName, commitBefore, task.Command)
+func GetItems(commitBefore, commitAfter string, task *Task, debug bool) (items []*gofeed.Item, err error) {
+	feedBefore, err := getFileByCommit(task.FileName, commitBefore, task.Command, debug)
 	if err != nil {
 		return items, err
 	}
-	feedAfter, err := getFileByCommit(task.FileName, commitAfter, task.Command)
+	feedAfter, err := getFileByCommit(task.FileName, commitAfter, task.Command, debug)
 	if err != nil {
 		return items, err
 	}
