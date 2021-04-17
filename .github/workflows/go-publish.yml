@@ -64,5 +64,4 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
         registry: ghcr.io
         repository: korney4eg/change-checker
-        tag_with_ref: true
-
+        tags: ${{ steps.tag_version.outputs.new_tag }},latest
