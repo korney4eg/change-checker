@@ -1,13 +1,9 @@
 package listen
 
 import (
-	"bytes"
 	"fmt"
-	"html/template"
 	"log"
 	"net/http"
-	"os/exec"
-	"strings"
 
 	"github.com/korney4eg/change-checker/pkg/compare"
 	"gopkg.in/go-playground/webhooks.v5/github"
@@ -25,20 +21,9 @@ const (
 	path = "/webhooks"
 )
 
-type Output struct {
-	CommitBefore string
-	CommitAfter  string
-	Title        string
-	Url          string
-}
-
 func (c *Command) Execute(_ []string) error {
 	// var err error
 	hook, _ := github.New(github.Options.Secret(c.Secret))
-	cfg, err := compare.NewConfig(c.Config)
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	http.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 		payload, err := hook.Parse(r, github.ReleaseEvent, github.PushEvent, github.PullRequestEvent)
@@ -49,41 +34,13 @@ func (c *Command) Execute(_ []string) error {
 			fmt.Println("Error:")
 			fmt.Println(err)
 		}
-		buf := new(bytes.Buffer)
-		generatedTpl := ""
 		switch payload.(type) {
 
 		case github.PushPayload:
 			push := payload.(github.PushPayload)
-			output := Output{push.Before, push.After, "", ""}
-			for _, task := range cfg.Filter("push", strings.TrimLeft(push.Ref, "refs/heads/")) {
-				changedItems, err := compare.Run(push.Before, push.After, &task)
-				if err != nil {
-					log.Fatal(err)
-				}
-				for _, item := range changedItems {
-
-					output.Title = item.Title
-					output.Url = "https://learningdevops.makvaz.com" + item.GUID
-					tmpl, err := template.New("test").Parse(task.OutputTemplate)
-					if err != nil {
-						log.Fatal(err)
-					}
-					err = tmpl.Execute(buf, output)
-					if err != nil {
-						log.Fatal(err)
-					}
-					generatedTpl = buf.String()
-					// fmt.Println(generatedTpl)
-
-					cmd := exec.Command("/bin/sh", "-c", generatedTpl)
-					stdoutStderr, err := cmd.CombinedOutput()
-					fmt.Printf("%s\n", stdoutStderr)
-					if err != nil {
-						log.Fatal(err)
-					}
-				}
-
+			err = compare.Run(c.Config, "push", push.Ref, push.Before, push.After)
+			if err != nil {
+				log.Fatal(err)
 			}
 
 			// case github.ReleasePayload:

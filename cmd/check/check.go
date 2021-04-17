@@ -9,15 +9,14 @@ import (
 type Command struct {
 	BaseBranch     string `short:"b" long:"base-branch" default:"master" required:"false" description:"branch to which compare "`
 	UpstreamBranch string `short:"u" long:"upstream-branch" required:"true" description:"branch to which compare "`
+	Config         string `short:"c" long:"config" required:"true"  description:"path to configuration yaml file"`
 }
 
 func (c *Command) Execute(_ []string) error {
 	fmt.Println("check")
-	changedItems, err := compare.Run(c.BaseBranch, c.UpstreamBranch, &task)
+	err := compare.Run(c.Config, "push", "master", c.BaseBranch, c.UpstreamBranch)
 	if err != nil {
 		return err
-	}
-	for _, item := range changedItems {
 	}
 	return nil
 }

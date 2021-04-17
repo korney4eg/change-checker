@@ -1,13 +1,23 @@
 package compare
 
 import (
+	"bytes"
 	"fmt"
+	"html/template"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/mmcdole/gofeed"
 	"gopkg.in/yaml.v2"
 )
+
+type Output struct {
+	CommitBefore string
+	CommitAfter  string
+	Title        string
+	Url          string
+}
 
 type Config struct {
 	Tasks []Task `yaml:"tasks"`
@@ -55,8 +65,9 @@ func (config *Config) Filter(action string, branch string) (tasks []Task) {
 
 func getFileByCommit(fileName, commit, cmdStr string) (*gofeed.Feed, error) {
 	cmd := exec.Command("/bin/sh", "-c", fmt.Sprintf(cmdStr, commit))
-	err := cmd.Run()
+	stdoutStderr, err := cmd.CombinedOutput()
 	if err != nil {
+		fmt.Printf("%s\n", stdoutStderr)
 		return nil, err
 	}
 	file, err := os.Open(fileName)
@@ -68,7 +79,45 @@ func getFileByCommit(fileName, commit, cmdStr string) (*gofeed.Feed, error) {
 	feed, err := fp.Parse(file)
 	return feed, err
 }
-func Run(commitBefore, commitAfter string, task *Task) (items []*gofeed.Item, err error) {
+func Run(config, action, branch, commitBefore, commitAfter string) error {
+	cfg, err := NewConfig(config)
+	buf := new(bytes.Buffer)
+	generatedTpl := ""
+	output := Output{commitBefore, commitAfter, "", ""}
+	if err != nil {
+		return err
+	}
+	for _, task := range cfg.Filter(action, strings.TrimLeft(branch, "refs/heads/")) {
+		changedItems, err := GetItems(commitBefore, commitAfter, &task)
+		if err != nil {
+			return err
+		}
+		for _, item := range changedItems {
+
+			output.Title = item.Title
+			output.Url = "https://learningdevops.makvaz.com" + item.GUID
+			tmpl, err := template.New("test").Parse(task.OutputTemplate)
+			if err != nil {
+				return err
+			}
+			err = tmpl.Execute(buf, output)
+			if err != nil {
+				return err
+			}
+			generatedTpl = buf.String()
+
+			cmd := exec.Command("/bin/sh", "-c", generatedTpl)
+			stdoutStderr, err := cmd.CombinedOutput()
+			fmt.Printf("%s\n", stdoutStderr)
+			if err != nil {
+				return err
+			}
+		}
+
+	}
+	return nil
+}
+func GetItems(commitBefore, commitAfter string, task *Task) (items []*gofeed.Item, err error) {
 	feedBefore, err := getFileByCommit(task.FileName, commitBefore, task.Command)
 	if err != nil {
 		return items, err
