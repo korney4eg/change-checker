@@ -56,3 +56,13 @@ jobs:
         asset_path: ./change-checker
         asset_name: change-checker
         asset_content_type: application/octet-stream
+
+    - name: Push to GitHub Packages
+      uses: docker/build-push-action@v1
+      with:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+        registry: ghcr.io
+        repository: korney4eg/change-checker
+        tag_with_ref: true
+
